@@ -3,6 +3,10 @@ import os
 import binance
 import datetime
 from ta.momentum import RSIIndicator
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 window = int(os.environ.get('RSI_WINDOW'))
 # Binance API credentials (use your own)
