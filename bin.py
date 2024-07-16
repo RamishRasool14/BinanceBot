@@ -19,8 +19,13 @@ for coin in top_coins:
     coin['volume'] = float(coin['volume'])
     coin['lastPrice'] = float(coin['lastPrice'])
 
-# filter for 50 coins with usdt
-top_coins = [coin for coin in top_coins if coin['symbol'].endswith('USDT')][:50]
+filtered_coins = pd.read_excel('Top81.xlsx', header=None)
+filtered_coins = filtered_coins[0].tolist()
+filtered_coins = [coin.replace('/', '') for coin in filtered_coins]
+
+top_coins = [coin for coin in top_coins if coin['symbol'] in filtered_coins]
+
+print(f"Filtered coins: {len(filtered_coins)} | Coins Found: {len(top_coins)} | Not found: {len(filtered_coins) - len(top_coins)}")
 
 def get_percentage_change(data, interval):
     """Calculate percentage change over a given interval."""
@@ -36,7 +41,7 @@ def fetch_and_calculate(symbol):
         '1D': '1d',
         '1H': '1h',
         '30M': '30m',
-        '15M': '15m'
+        '4H': '4h'
     }
 
     changes = {}
@@ -48,7 +53,7 @@ def fetch_and_calculate(symbol):
             data = client.get_historical_klines(symbol, interval)
         elif interval == '30m':
             data = client.get_historical_klines(symbol, interval)
-        elif interval == '15m':
+        elif interval == '4h':
             data = client.get_historical_klines(symbol, interval)
         
         changes[label] = calculate_rsi(data, window)
