@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import binance
 import datetime
+from ta.momentum import RSIIndicator
 
 window = int(os.environ.get('RSI_WINDOW'))
 # Binance API credentials (use your own)
@@ -25,7 +26,7 @@ filtered_coins = [coin.replace('/', '') for coin in filtered_coins]
 
 top_coins = [coin for coin in top_coins if coin['symbol'] in filtered_coins]
 
-print(f"Filtered coins: {len(filtered_coins)} | Coins Found: {len(top_coins)} | Not found: {len(filtered_coins) - len(top_coins)}")
+# print(f"Filtered coins: {len(filtered_coins)} | Coins Found: {len(top_coins)} | Not found: {len(filtered_coins) - len(top_coins)}")
 
 def get_percentage_change(data, interval):
     """Calculate percentage change over a given interval."""
@@ -38,22 +39,22 @@ def get_percentage_change(data, interval):
 def fetch_and_calculate(symbol):
     """Fetch historical data and calculate percentage changes for different intervals."""
     intervals = {
-        '1D': '1d',
-        '1H': '1h',
+        '15M': '15m',
         '30M': '30m',
-        '4H': '4h'
+        '1H': '1h',
+        '1D': '1d'
     }
 
     changes = {}
 
     for label, interval in intervals.items():
-        if interval == '1d':
-            data = client.get_historical_klines(symbol, interval)
-        elif interval == '1h':
+        if interval == '15m':
             data = client.get_historical_klines(symbol, interval)
         elif interval == '30m':
             data = client.get_historical_klines(symbol, interval)
-        elif interval == '4h':
+        elif interval == '1h':
+            data = client.get_historical_klines(symbol, interval)
+        elif interval == '1d':
             data = client.get_historical_klines(symbol, interval)
         
         changes[label] = calculate_rsi(data, window)
@@ -61,24 +62,13 @@ def fetch_and_calculate(symbol):
     return changes
 
 def calculate_rsi(klines, window):
-    """Calculate the RSI for given price data and window"""
-
     data = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 
-                                     'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 
-                                     'taker_buy_quote_asset_volume', 'ignore'])
+                                    'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 
+                                    'taker_buy_quote_asset_volume', 'ignore'])
 
     # Convert the 'close' column to float
     data['close'] = data['close'].astype(float)
-
-    delta = data['close'].diff()
-    gain = (delta.where(delta > 0, 0)).fillna(0)
-    loss = (-delta.where(delta < 0, 0)).fillna(0)
-
-    avg_gain = gain.rolling(window=window, min_periods=1).mean()
-    avg_loss = loss.rolling(window=window, min_periods=1).mean()
-
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
+    rsi = RSIIndicator(close=data['close'], window=window).rsi()
     return rsi.iloc[-1]
 
 # Define time frames
